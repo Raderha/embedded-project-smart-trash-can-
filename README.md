@@ -8,6 +8,8 @@
   - `arduino.ino`: 메인 Arduino 스케치 파일
 - `backend/`: Node.js 서버 코드
   - `db.js`: 데이터베이스 연결 및 데이터 저장 로직
+  - `tcpserver.js`: 아두이노와 연동 및 데이터를 수신하는 TCP서버
+  - `server.js`: 메인 서버 코드
 
 ## 하드웨어 요구사항
 
