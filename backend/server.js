@@ -44,7 +44,6 @@ io.on('connection', (socket) => {
 
 // TCP 서버로부터 데이터를 받아 처리
 emitter.on('data', (message) => {
-<<<<<<< HEAD
     try {
         // 빈 데이터 체크
         if (!message || message.trim() === '') {
@@ -70,15 +69,6 @@ emitter.on('data', (message) => {
     } catch (error) {
         console.error('데이터 처리 중 에러:', error);
     }
-=======
-    console.log('Arduino에서 받은 데이터:', message);
-    
-    // 연결된 모든 클라이언트에게 데이터 전송
-    io.emit('sensorData', {
-        data: message,
-        timestamp: new Date().toISOString()
-    });
->>>>>>> c67c65f7f2fdc1df1b904c144c7ec5de1155125c
 });
 
 const port = process.env.WS_PORT || 8000;
