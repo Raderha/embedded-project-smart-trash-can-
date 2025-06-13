@@ -11,32 +11,92 @@ WiFiClient client;
 #define BUZZER_PIN 6
 
 // Wi-Fi 및 서버 정보
-const char* ssid = "YourSSID";
-const char* password = "YourPassword";
-const char* server_ip = "192.168.0.100";  // Node.js 서버 IP
-const int port = 3000;
+const char* ssid = "KT_GiGA_2F57";           // 와이파이 이름
+const char* password = "89kz65ij16";   // 와이파이 비밀번호
+
+// 서버 설정
+// Node.js 서버가 실행되는 컴퓨터의 IP 주소를 사용
+// ipconfig의 'IPv4 주소' 항목에서 확인
+const char* server_ip = "172.30.1.8"; // Node.js 서버 IP 주소
+const int port = 3000;                  // 서버 포트
 
 // 설정값
-const String location = "3층 A구역";  // 쓰레기통 위치
-const int binHeight = 100;            // 쓰레기통 깊이 (단위: cm)
-const int fireThreshold = 400;        // MQ-2 센서 화재 감지 임계값
+const String location = "3층 A구역";   // 쓰레기통 위치
+const int binHeight = 100;            // 쓰레기통 높이(cm)
+const int fireThreshold = 400;        // 화재 감지 MQ-2 임계값
+
+// 전역 변수로 클라이언트 연결 상태 관리
+bool isConnected = false;
+unsigned long lastConnectionAttempt = 0;
+const unsigned long RECONNECT_INTERVAL = 5000; // 5초마다 재연결 시도
 
 void setup() {
   Serial.begin(9600);
+  Serial.println("\n시스템 시작...");
+  Serial.println("WiFi 연결을 시도합니다...");
+  Serial.print("SSID: ");
+  Serial.println(ssid);
+
+  // 핀모드 설정
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
-
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_YELLOW, OUTPUT);
   pinMode(LED_RED, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  Serial.println("핀 모드 설정 완료");
 
   // WiFi 연결
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  
+  unsigned long startAttemptTime = millis();
+  int attempts = 0;
+  
+  while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 20000) { // 20초 타임아웃
+    if (attempts % 4 == 0) { // 2초마다 상태 출력
+      Serial.print("\nWiFi 연결 시도 중... (");
+      Serial.print(attempts / 4 + 1);
+      Serial.println("번째 시도)");
+      Serial.print("현재 상태: ");
+      switch(WiFi.status()) {
+        case WL_IDLE_STATUS:
+          Serial.println("대기 중");
+          break;
+        case WL_NO_SSID_AVAIL:
+          Serial.println("SSID를 찾을 수 없음");
+          break;
+        case WL_CONNECT_FAILED:
+          Serial.println("연결 실패");
+          break;
+        case WL_CONNECTION_LOST:
+          Serial.println("연결 끊김");
+          break;
+        case WL_DISCONNECTED:
+          Serial.println("연결 해제됨");
+          break;
+        default:
+          Serial.println("알 수 없는 상태");
+      }
+    }
     Serial.print(".");
     delay(500);
+    attempts++;
   }
-  Serial.println("\nWiFi connected.");
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nWiFi 연결 성공!");
+    Serial.print("IP 주소: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("신호 강도: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+  } else {
+    Serial.println("\nWiFi 연결 실패!");
+    Serial.println("다음 사항을 확인해주세요:");
+    Serial.println("1. SSID가 정확한지 확인");
+    Serial.println("2. 비밀번호가 정확한지 확인");
+    Serial.println("3. WiFi 신호가 충분한지 확인");
+  }
 }
 
 long getDistance() {
@@ -46,8 +106,8 @@ long getDistance() {
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
 
-  long duration = pulseIn(ECHO_PIN, HIGH, 30000);
-  long distance = duration * 0.034 / 2; // cm
+  long duration = pulseIn(ECHO_PIN, HIGH, 30000); // 타임아웃 30ms
+  long distance = duration * 0.034 / 2; // 거리 계산(cm)
   return distance;
 }
 
@@ -69,31 +129,61 @@ void loop() {
   // 1. 센서 값 읽기
   int mq2 = analogRead(MQ2_PIN);
   bool fire = mq2 > fireThreshold;
+  Serial.print("MQ2 센서 값: ");
+  Serial.println(mq2);
 
   long distance = getDistance();
   int fillPercent = constrain((binHeight - distance) * 100 / binHeight, 0, 100);
+  Serial.print("거리: ");
+  Serial.print(distance);
+  Serial.print("cm, 채움률: ");
+  Serial.print(fillPercent);
+  Serial.println("%");
 
   // 2. LED 표시
   displayFillLevel(fillPercent);
 
-  // 3. 부저 울리기 (화재 감지 시)
-  if (fire) {
-    digitalWrite(BUZZER_PIN, HIGH);
+  // 3. 부저 울림
+  digitalWrite(BUZZER_PIN, fire ? HIGH : LOW);
+
+  // 4. 서버 연결 및 데이터 전송
+  if (WiFi.status() == WL_CONNECTED) {
+    // 연결이 끊어졌거나 처음 연결 시도하는 경우
+    if (!isConnected && (millis() - lastConnectionAttempt >= RECONNECT_INTERVAL)) {
+      Serial.print("서버 연결 시도 중... (");
+      Serial.print(server_ip);
+      Serial.print(":");
+      Serial.print(port);
+      Serial.println(")");
+      
+      if (client.connect(server_ip, port)) {
+        Serial.println("서버 연결 성공!");
+        isConnected = true;
+      } else {
+        Serial.println("서버 연결 실패");
+        lastConnectionAttempt = millis();
+      }
+    }
+
+    // 연결이 유지되고 있는 경우 데이터 전송
+    if (isConnected && client.connected()) {
+      String json = "{\"location\":\"" + location +
+                    "\",\"fire\":" + (fire ? "true" : "false") +
+                    ",\"fill\":" + String(fillPercent) +
+                    ",\"mq2\":" + String(mq2) +
+                    ",\"distance\":" + String(distance) + "}";
+      client.println(json);
+      Serial.println("전송됨: " + json);
+    } else if (isConnected) {
+      // 연결이 끊어진 경우
+      Serial.println("서버와의 연결이 끊어짐");
+      isConnected = false;
+      lastConnectionAttempt = millis();
+    }
   } else {
-    digitalWrite(BUZZER_PIN, LOW);
+    Serial.println("WiFi 연결 끊김");
+    isConnected = false;
   }
 
-  // 4. JSON 전송
-  if (client.connect(server_ip, port)) {
-    String json = "{\"location\":\"" + location +
-                  "\",\"fire\":" + (fire ? "true" : "false") +
-                  ",\"fill\":" + String(fillPercent) + "}";
-    client.println(json);
-    Serial.println("Sent: " + json);
-    client.stop();
-  } else {
-    Serial.println("서버 연결 실패");
-  }
-
-  delay(3000);
+  delay(3000); // 3초마다 측정
 }

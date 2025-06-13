@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
 const { startTCPServer, emitter } = require('./tcpserver');
-const { connectDB, sendData, closeDB } = require('./db');
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
@@ -15,9 +15,8 @@ const io = socketIo(server, {
     pingInterval: 25000  // 25초
 });
 
-const tcpport = 3000;
+const tcpport = process.env.TCP_PORT || 3000;
 const tcp = startTCPServer(tcpport);
-const connection = connectDB();
 
 // 연결된 클라이언트 관리
 const connectedClients = new Map();
@@ -54,7 +53,7 @@ emitter.on('data', (message) => {
     });
 });
 
-const port = 8000;
-server.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+const port = process.env.WS_PORT || 8000;
+server.listen(port, process.env.HOST || '0.0.0.0', () => {
+    console.log(`WebSocket 서버가 포트 ${port}에서 실행 중입니다`);
 });
