@@ -46,19 +46,35 @@ export const TrashBinProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const serverBins = await getTrashBins();
-        const dummyBins = generateDummyData();
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+          try {
+            const serverBins = await getTrashBins();
+            const dummyBins = generateDummyData();
 
-        // 서버 데이터와 id가 겹치지 않도록 필터링
-        const merged = [
-          ...serverBins,
-          ...dummyBins.filter((dummy) => !serverBins.some((b) => b.id === dummy.id)),
-        ];
+            // 서버 데이터와 id가 겹치지 않도록 필터링
+            const merged = [
+              ...serverBins,
+              ...dummyBins.filter((dummy) => !serverBins.some((b) => b.id === dummy.id)),
+            ];
 
-        setBins(merged);
+            setBins(merged);
+            break; // 성공하면 루프 종료
+          } catch (error) {
+            retryCount++;
+            if (retryCount === maxRetries) {
+              console.log('서버 연결 실패, 더미 데이터 사용');
+              setBins(generateDummyData());
+            } else {
+              console.log(`서버 연결 재시도 ${retryCount}/${maxRetries}`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        }
       } catch (error) {
-        console.error('데이터 로딩 중 오류 발생:', error);
-        // 오류 발생 시 더미 데이터만 표시
+        console.log('데이터 로딩 중 오류 발생');
         setBins(generateDummyData());
       }
     };

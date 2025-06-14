@@ -1,7 +1,7 @@
 // src/services/api.ts
 import { TrashBinStatus } from '../types/TrashBin';
 
-const API_URL = 'http://202.30.49.84:3000/api/bins';
+const API_URL = 'http://192.168.0.18:8000/api/bins';
 
 /**
  * 서버에서 모든 쓰레기통 상태를 받아옵니다.
@@ -13,7 +13,7 @@ export const getTrashBins = async (): Promise<TrashBinStatus[]> => {
     const data = await res.json();
     return data;
   } catch (error) {
-    console.error('🚨 getTrashBins 오류:', error);
+    // console.error('🚨 getTrashBins 오류:', error);
     return []; // 실패 시 빈 배열 반환
   }
 };

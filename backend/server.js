@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
 const { startTCPServer, emitter } = require('./tcpserver');
+const { saveFireData } = require('./db');
 require('dotenv').config();
 
 const app = express();
@@ -59,6 +60,11 @@ emitter.on('data', (message) => {
         // 필수 필드 확인
         if (!data.location || typeof data.fill !== 'number' || typeof data.fire !== 'boolean') {
             throw new Error('잘못된 데이터 형식');
+        }
+
+        // 화재 감지 시 DB에 저장
+        if (data.fire) {
+            saveFireData(data);
         }
 
         // 연결된 모든 클라이언트에게 데이터 전송
