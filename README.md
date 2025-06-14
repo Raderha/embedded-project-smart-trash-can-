@@ -26,6 +26,7 @@
 
 - Node.js
 - MySQL
+- React Native
 
 ## 설정 방법
 
@@ -35,11 +36,19 @@
 
 2. 백엔드 설정
    ```bash
-   cd backend
-   npm install
+     cd backend
+     npm install
+     설정 후 node server.js로 실행
+   ```
+   
+3. 앱 설정
+   ```bash
+     cd AppState/smart-trashCan
+     npm install
+     설정 후 npx expo start로 실행 후 QR코드 스캔
    ```
 
-3. 데이터베이스 설정
+4. 데이터베이스 설정
    - MySQL에서 `embeded` 데이터베이스 생성
    - `isfire` 테이블 생성:
      ```sql
