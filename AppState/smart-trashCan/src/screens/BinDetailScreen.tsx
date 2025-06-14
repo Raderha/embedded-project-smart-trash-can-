@@ -23,7 +23,7 @@ export default function BinDetail({ route, navigation }: any) {
         ...bin,
         status: newStatus,
         assignedUser: newStatus === '정상' ? null : bin.assignedUser,
-        isFireDetected: newStatus === '상황 종료' ? false : bin.isFireDetected,
+        // isFireDetected: newStatus === '상황 종료' ? false : bin.isFireDetected,
       };
       updateBin(updatedBin);
       navigation.goBack();
@@ -43,7 +43,7 @@ export default function BinDetail({ route, navigation }: any) {
       <View style={styles.buttonContainer}>
         <Button title="수거 예약" onPress={() => handleStatusChange('수거 예정')} />
         <Button title="수거 완료" onPress={() => handleStatusChange('정상')} />
-        <Button title="상황 종료" onPress={() => handleStatusChange('상황 종료')} />
+        {/* <Button title="상황 종료" onPress={() => handleStatusChange('상황 종료')} /> */}
       </View>
     </View>
   );
