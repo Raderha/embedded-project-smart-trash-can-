@@ -40,14 +40,14 @@
    ```
 
 3. 데이터베이스 설정
-   - MySQL에서 `imbeded` 데이터베이스 생성
+   - MySQL에서 `embeded` 데이터베이스 생성
    - `isfire` 테이블 생성:
      ```sql
-     CREATE TABLE isfire (
-       id int auto_increment primary key,
-       timestamp datetime not null,
-       status varchar(20) not null,
-       location varchar(50) not null
+       create table isfire (
+        -> no int auto_increment not null primary key,
+        -> date timestamp not null,
+        -> locate varchar(30) not null,
+        -> state int);
      );
      ```
 
